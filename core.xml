@@ -7,6 +7,14 @@
 	<Button name="VladsVendorFilterMenuButton" parent="MerchantBuyBackItem" registerForClicks="LeftButtonUp" mixin="VladsVendorFilterMenuButtonMixin">
 		<Size x="32" y="32"/>
 		<Layers>
+			<Layer level="ARTWORK">
+				<Texture parentKey="Icon" file="Interface\ChatFrame\ChatFrameExpandArrow" hidden="true">
+					<Anchors>
+						<Anchor point="TOPLEFT"/>
+						<Anchor point="BOTTOMRIGHT"/>
+					</Anchors>
+				</Texture>
+			</Layer>
 			<Layer level="OVERLAY">
 				<Texture parentKey="All" file="Interface\Buttons\UI-Common-MouseHilight" alphaMode="ADD" hidden="true">
 					<Anchors>

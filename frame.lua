@@ -1,6 +1,7 @@
 VladsVendorFilterMenuFrameMixin = {}
 
 local VladsVendorFilterMenuFrameEvents = {
+	"ADDON_LOADED",
 	"MERCHANT_SHOW",
 	"MERCHANT_CLOSED",
 }
@@ -30,7 +31,9 @@ function VladsVendorFilterMenuFrameMixin:OnEvent(event, arg1)
 	if arg1 == "CVF_UPDATE" then
 		return
 	end
-	if event == "MERCHANT_SHOW" then
+	if event == "ADDON_LOADED" then
+		self:SetupAddOnSupport()
+	elseif event == "MERCHANT_SHOW" then
 		self.npc = UnitGUID("npc")
 		if self.prevNPC and self.prevNPC ~= self.npc then self:OnEvent("MERCHANT_CLOSED") end
 		self.prevNPC = self.npc
@@ -323,4 +326,36 @@ end
 function VladsVendorFilterMenuFrameMixin:GetDropdownInfo(reset)
 	local info = self.DropdownInfo
 	return reset and table.wipe(info) or info
+end
+
+function VladsVendorFilterMenuFrameMixin:SetupAddOnSupport()
+	if IsAddOnLoaded("ElvUI") then
+		self:SetupElvUI()
+	end
+end
+
+function VladsVendorFilterMenuFrameMixin:SetupElvUI()
+	if self.setupElvUI then
+		return
+	end
+
+	local E = ElvUI and ElvUI[1]
+	local S = E and E:GetModule("Skins")
+
+	if not S then
+		return
+	end
+
+	if not E.Border or not S.ArrowRotation then
+		return
+	end
+
+	local button = self:GetParent()
+	S:HandleButton(button)
+	button:SetSize(20, 20)
+
+	button.Icon:SetRotation(S.ArrowRotation['down'])
+	button.Icon:Show()
+
+	self.setupElvUI = true
 end
