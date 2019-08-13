@@ -119,9 +119,11 @@ end
 
 local frame = CreateFrame("Frame")
 frame:RegisterEvent("NEW_RECIPE_LEARNED")
-frame:RegisterEvent("COMPANION_LEARNED")
-frame:RegisterEvent("COMPANION_UNLEARNED")
 frame:RegisterEvent("LEARNED_SPELL_IN_TAB")
+if WOW_PROJECT_ID == WOW_PROJECT_MAINLINE then
+	frame:RegisterEvent("COMPANION_LEARNED")
+	frame:RegisterEvent("COMPANION_UNLEARNED")
+end
 frame:SetScript("OnEvent", function()
 	for k, v in pairs(cache) do
 		if v == false then

@@ -113,15 +113,17 @@ function VladsVendorFilterMenuFrameMixin:SetupHooks()
 		end
 	end
 
-	self.C_MerchantFrame_IsMerchantItemRefundable = _G.C_MerchantFrame.IsMerchantItemRefundable
+	if WOW_PROJECT_ID == WOW_PROJECT_MAINLINE then
+		self.C_MerchantFrame_IsMerchantItemRefundable = _G.C_MerchantFrame.IsMerchantItemRefundable
 
-	_G.C_MerchantFrame.IsMerchantItemRefundable = function(i, ...)
-		if not self.EnableHooks then
-			return self.C_MerchantFrame_IsMerchantItemRefundable(i, ...)
-		else
-			local index = self.IndexLookup[i]
-			if index then
-				return self.C_MerchantFrame_IsMerchantItemRefundable(index, ...)
+		_G.C_MerchantFrame.IsMerchantItemRefundable = function(i, ...)
+			if not self.EnableHooks then
+				return self.C_MerchantFrame_IsMerchantItemRefundable(i, ...)
+			else
+				local index = self.IndexLookup[i]
+				if index then
+					return self.C_MerchantFrame_IsMerchantItemRefundable(index, ...)
+				end
 			end
 		end
 	end
