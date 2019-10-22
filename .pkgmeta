@@ -1,2 +1,4 @@
 package-as: CompactVendorFilter
 enable-nolib-creation: no
+ignore:
+  - .travis.yml
