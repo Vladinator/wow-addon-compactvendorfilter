@@ -79,7 +79,7 @@ filter.defaults = { alreadyknown = false }
 
 local VladsVendorListTooltipMixin = _G.VladsVendorListTooltipMixin
 
-if not VladsVendorListTooltipMixin then
+if not VladsVendorListTooltipMixin then -- TODO: remove dependency CompactVendor shouldn't be required if someone wants to use the Filter module alone
 	return
 end
 
@@ -118,9 +118,15 @@ function filter:IsKnown(link)
 end
 
 local frame = CreateFrame("Frame")
-frame:RegisterEvent("NEW_RECIPE_LEARNED")
 frame:RegisterEvent("LEARNED_SPELL_IN_TAB")
+frame:RegisterEvent("NEW_RECIPE_LEARNED")
 if WOW_PROJECT_ID == WOW_PROJECT_MAINLINE then
+	frame:RegisterEvent("TOYS_UPDATED")
+	frame:RegisterEvent("HEIRLOOMS_UPDATED")
+	frame:RegisterEvent("PET_JOURNAL_PET_DELETED")
+	frame:RegisterEvent("PET_JOURNAL_LIST_UPDATE")
+	frame:RegisterEvent("NEW_MOUNT_ADDED")
+	frame:RegisterEvent("COMPANION_UPDATE")
 	frame:RegisterEvent("COMPANION_LEARNED")
 	frame:RegisterEvent("COMPANION_UNLEARNED")
 end
