@@ -90,24 +90,28 @@ function VladsVendorFilterMenuFrameMixin:SetupHooks()
 		PickupMerchantItem = 2,
 		ShowMerchantSellCursor = 2,
 	}) do
-		self[k] = _G[k]
+		local func = _G[k]
 
-		if v == 1 then
-			_G[k] = function(i, ...)
-				if not self.EnableHooks then
-					return self[k](i, ...)
-				else
+		if type(func) == "function" then
+			self[k] = func
+
+			if v == 1 then
+				_G[k] = function(i, ...)
+					if not self.EnableHooks then
+						return self[k](i, ...)
+					else
+						local index = self.IndexLookup[i]
+						if index then
+							return self[k](index, ...)
+						end
+					end
+				end
+			elseif v == 2 then
+				_G[k] = function(i, ...)
 					local index = self.IndexLookup[i]
 					if index then
 						return self[k](index, ...)
 					end
-				end
-			end
-		elseif v == 2 then
-			_G[k] = function(i, ...)
-				local index = self.IndexLookup[i]
-				if index then
-					return self[k](index, ...)
 				end
 			end
 		end
