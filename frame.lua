@@ -132,27 +132,22 @@ function VladsVendorFilterMenuFrameMixin:SetupHooks()
 		end
 	end
 
-	self.GameTooltip_SetMerchantItem = _G.GameTooltip.SetMerchantItem
-	self.GameTooltip_SetMerchantCostItem = _G.GameTooltip.SetMerchantCostItem
-
-	local function SetMerchantItem(tip, i, ...)
-		self.EnableHooks = false
-		self.GameTooltip_SetMerchantItem(tip, self.IndexLookup[i], ...)
-		self.EnableHooks = true
-	end
-
-	local function SetMerchantCostItem(tip, i, ...)
-		self.EnableHooks = false
-		self.GameTooltip_SetMerchantCostItem(tip, self.IndexLookup[i], ...)
-		self.EnableHooks = true
-	end
-
 	local frame = EnumerateFrames()
 	while frame do
 		if frame:GetObjectType() == "GameTooltip" and not self.HookedGameTooltip[frame] then
 			self.HookedGameTooltip[frame] = true
-			frame.SetMerchantItem = SetMerchantItem
-			frame.SetMerchantCostItem = SetMerchantCostItem
+			local SetMerchantItem = frame.SetMerchantItem
+			frame.SetMerchantItem = function(tip, i, ...)
+				self.EnableHooks = false
+				SetMerchantItem(tip, self.IndexLookup[i], ...)
+				self.EnableHooks = true
+			end
+			local SetMerchantCostItem = frame.SetMerchantCostItem
+			frame.SetMerchantCostItem = function(tip, i, ...)
+				self.EnableHooks = false
+				SetMerchantCostItem(tip, self.IndexLookup[i], ...)
+				self.EnableHooks = true
+			end
 		end
 		frame = EnumerateFrames(frame)
 	end
