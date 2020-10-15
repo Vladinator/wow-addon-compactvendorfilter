@@ -1,13 +1,40 @@
 VladsVendorFilterMenuButtonMixin = {}
 
+local function UpdateMenuReference(self)
+	if not self.Menu then
+		self.Menu = _G.VladsVendorFilterMenuFrame
+	end
+end
+
+local function IsDropDownShown(self)
+	return DropDownList1.dropdown == self.Menu and DropDownList1:IsShown()
+end
+
 function VladsVendorFilterMenuButtonMixin:OnLoad()
 	self:SetPoint("RIGHT", MerchantFrameCloseButton, "LEFT", 8 - 4, 0)
 	self:SetScale(0.85)
 end
 
-function VladsVendorFilterMenuButtonMixin:OnClick()
-	if not self.Menu then
-		self.Menu = _G.VladsVendorFilterMenuFrame
+function VladsVendorFilterMenuButtonMixin:OnEnter()
+	UpdateMenuReference(self)
+	self.IsOnButton = true
+	self.IsShown = IsDropDownShown(self)
+end
+
+function VladsVendorFilterMenuButtonMixin:OnLeave()
+	UpdateMenuReference(self)
+	self.IsOnButton = false
+	self.IsShown = IsDropDownShown(self)
+end
+
+function VladsVendorFilterMenuButtonMixin:OnMouseDown()
+	UpdateMenuReference(self)
+	if self.IsOnButton and self.IsShown then
+		self.IsShown = false
+		CloseDropDownMenus()
+	else
+		self.IsShown = true
+		ToggleDropDownMenu(1, nil, self.Menu, self, 0, 0)
 	end
-	ToggleDropDownMenu(1, nil, self.Menu, self, 0, 0)
+	PlaySound(SOUNDKIT.U_CHAT_SCROLL_BUTTON)
 end

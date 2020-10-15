@@ -26,7 +26,9 @@
 		</Layers>
 		<Scripts>
 			<OnLoad method="OnLoad"/>
-			<OnClick method="OnClick"/>
+			<OnEnter method="OnEnter"/>
+			<OnLeave method="OnLeave"/>
+			<OnMouseDown method="OnMouseDown"/>
 		</Scripts>
 		<NormalTexture setAllPoints="true" file="Interface\ChatFrame\UI-ChatIcon-ScrollDown-Up"/>
 		<PushedTexture setAllPoints="true" file="Interface\ChatFrame\UI-ChatIcon-ScrollDown-Down"/>
