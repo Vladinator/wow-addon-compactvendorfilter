@@ -13,6 +13,7 @@ end
 function VladsVendorFilterMenuButtonMixin:OnLoad()
 	self:SetPoint("RIGHT", MerchantFrameCloseButton, "LEFT", 8 - 4, 0)
 	self:SetScale(0.85)
+	hooksecurefunc("MerchantFrame_Update", function() self:SetShown(MerchantFrame.selectedTab == 1) end)
 end
 
 function VladsVendorFilterMenuButtonMixin:OnEnter()

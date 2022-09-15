@@ -4,7 +4,7 @@
 	<Script file="button.lua"/>
 	<Script file="frame.lua"/>
 
-	<Button name="VladsVendorFilterMenuButton" parent="MerchantBuyBackItem" registerForClicks="LeftButtonUp" mixin="VladsVendorFilterMenuButtonMixin">
+	<Button name="VladsVendorFilterMenuButton" parent="MerchantFrameCloseButton" registerForClicks="LeftButtonUp" mixin="VladsVendorFilterMenuButtonMixin">
 		<Size x="32" y="32"/>
 		<Layers>
 			<Layer level="ARTWORK">
