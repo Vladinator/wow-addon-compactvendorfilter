@@ -27,10 +27,7 @@ function VladsVendorFilterMenuFrameMixin:OnLoad()
 	self:SetupFirstHook()
 end
 
-function VladsVendorFilterMenuFrameMixin:OnEvent(event, arg1)
-	if arg1 == "CVF_UPDATE" then
-		return
-	end
+function VladsVendorFilterMenuFrameMixin:OnEvent(event, ...)
 	if event == "ADDON_LOADED" then
 		self:SetupAddOnSupport()
 	elseif event == "MERCHANT_SHOW" then
@@ -233,16 +230,10 @@ end
 function VladsVendorFilterMenuFrameMixin:RefreshFrames()
 	local frame = EnumerateFrames()
 	while frame do
-		if frame:IsEventRegistered("MERCHANT_SHOW") then
-			local func = frame:GetScript("OnEvent")
-			if func then
-				func(frame, "MERCHANT_SHOW", "CVF_UPDATE")
-			end
-		end
 		if frame:IsEventRegistered("MERCHANT_UPDATE") then
 			local func = frame:GetScript("OnEvent")
 			if func then
-				func(frame, "MERCHANT_UPDATE", "CVF_UPDATE")
+				func(frame, "MERCHANT_UPDATE")
 			end
 		end
 		frame = EnumerateFrames(frame)
