@@ -1,8 +1,8 @@
-## Interface: 90207
+## Interface: 100000
 ## Title: CompactVendorFilter
 ## Notes: Compact Vendor Filter adds a easy to use menu to filter items from vendors. Inspiration drawn from Yssaril's GoblinVendorFilter.
 ## Author: Vladinator
-## Version: 9.2.7.220917
+## Version: 10.0.0.221026
 ## OptionalDeps: CompactVendor
 ## X-Curse-Project-ID: 332664
 ## X-WoWI-ID: 25080
