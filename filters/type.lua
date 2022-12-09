@@ -29,11 +29,9 @@ function filter:ResetFilter()
 		end
 	end
 	table.wipe(self.options)
-	for i = 1, self.parent.GetMerchantNumItems(), 1 do
-		local link = self.parent.GetMerchantItemLink(i)
-		if link then
-			self:AddItem(i, link)
-		end
+	local items = VladsVendorDataProvider:GetMerchantItems(function(itemData) return not itemData:IsPending() end)
+	for _, itemData in ipairs(items) do
+		self:AddItem(itemData)
 	end
 end
 
@@ -53,8 +51,8 @@ function filter:ShowAll()
 	self:ResetFilter()
 end
 
-function filter:AddItem(index, link)
-	local _, _, _, _, _, itemType, itemSubType = GetItemInfo(link)
+function filter:AddItem(itemData)
+	local _, _, _, _, _, itemType, itemSubType = GetItemInfo(itemData.itemLink)
 	if not itemType or not itemSubType then
 		return
 	end
@@ -71,8 +69,8 @@ function filter:ClearAll()
 	VladsVendorFilterMixin.ClearAll(self)
 end
 
-function filter:IsFiltered(index, link)
-	local _, _, _, _, _, itemType, itemSubType = GetItemInfo(link)
+function filter:IsFiltered(itemData)
+	local _, _, _, _, _, itemType, itemSubType = GetItemInfo(itemData.itemLink)
 	if not itemType or not itemSubType then
 		return
 	end

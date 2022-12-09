@@ -23,11 +23,11 @@ function filter:ShowAll()
 	self.affordable = false
 end
 
-function filter:AddItem(index, link)
-	if self.parent.CanAffordMerchantItem(index) ~= false then
-		self.affordablelist[link] = true
+function filter:AddItem(itemData)
+	if itemData.canAfford ~= false then
+		self.affordablelist[itemData.index] = true
 	else
-		self.notaffordablelist[link] = true
+		self.notaffordablelist[itemData.index] = true
 	end
 end
 
@@ -38,9 +38,9 @@ function filter:ClearAll()
 	table.wipe(self.notaffordablelist)
 end
 
-function filter:IsFiltered(index, link)
+function filter:IsFiltered(itemData)
 	if self.affordable then
-		return self.notaffordablelist[link]
+		return self.notaffordablelist[itemData.index]
 	else
 		return false
 	end

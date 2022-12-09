@@ -40,9 +40,9 @@ end
 
 local tempStats = {}
 
-function filter:AddItem(index, link)
+function filter:AddItem(itemData)
 	table.wipe(tempStats)
-	GetItemStats(link, tempStats)
+	GetItemStats(itemData.itemLink, tempStats)
 	for stat in pairs(tempStats) do
 		if _G[stat] then
 			self.itemstat[stat] = true
@@ -57,9 +57,9 @@ function filter:ClearAll()
 	table.wipe(self.itemstat)
 end
 
-function filter:IsFiltered(index, link)
+function filter:IsFiltered(itemData)
 	table.wipe(tempStats)
-	GetItemStats(link, tempStats)
+	GetItemStats(itemData.itemLink, tempStats)
 	for stat in pairs(tempStats) do
 		if self.itemstat_filtered_EX[stat] then
 			return true

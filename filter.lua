@@ -13,14 +13,14 @@ end
 function VladsVendorFilterMixin:ShowAll()
 end
 
-function VladsVendorFilterMixin:AddItem(index, link)
+function VladsVendorFilterMixin:AddItem(itemData)
 end
 
 function VladsVendorFilterMixin:ClearAll()
 	self:ResetFilter()
 end
 
-function VladsVendorFilterMixin:IsFiltered(index, link)
+function VladsVendorFilterMixin:IsFiltered(itemData)
 	return false
 end
 

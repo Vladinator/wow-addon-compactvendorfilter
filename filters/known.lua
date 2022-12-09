@@ -22,8 +22,8 @@ function filter:ShowAll()
 	self.alreadyknown = true
 end
 
-function filter:AddItem(index, link)
-	self.linkList[link] = index
+function filter:AddItem(itemData)
+	self.linkList[itemData.index] = itemData
 end
 
 function filter:ClearAll()
@@ -32,16 +32,16 @@ function filter:ClearAll()
 	table.wipe(self.linkList)
 end
 
-function filter:IsFiltered(index, link)
-	return not self.alreadyknown and self:IsKnown(link)
+function filter:IsFiltered(itemData)
+	return not self.alreadyknown and self:IsKnown(itemData.itemLink)
 end
 
 function filter:IsRelevant()
 	local numKnown = 0
 	local nunUnknown = 0
 
-	for link in pairs(self.linkList) do
-		if self:IsKnown(link) then
+	for _, itemData in pairs(self.linkList) do
+		if self:IsKnown(itemData.itemLink) then
 			numKnown = numKnown + 1
 		else
 			nunUnknown = nunUnknown + 1

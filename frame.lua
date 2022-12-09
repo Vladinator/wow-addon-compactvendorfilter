@@ -11,12 +11,6 @@ function VladsVendorFilterMenuFrameMixin:OnLoad()
 
 	self.Filters = {}
 
-	self.IndexLookupCount = 0
-	self.IndexLookup = {}
-
-	self.EnableHooks = true
-	self.HookedGameTooltip = {}
-
 	self.DropdownInfo = {}
 	self.DropdownSortedFilters = {}
 
@@ -24,7 +18,7 @@ function VladsVendorFilterMenuFrameMixin:OnLoad()
 
 	UIDropDownMenu_SetInitializeFunction(self, self.DropdownInitialize)
 
-	self:SetupFirstHook()
+	VladsVendorDataProvider:RegisterCallback(VladsVendorDataProvider.Event.OnMerchantUpdate, function(_, isReady) if isReady then self:RefreshFrames() end end)
 end
 
 function VladsVendorFilterMenuFrameMixin:OnEvent(event, ...)
@@ -65,162 +59,6 @@ function VladsVendorFilterMenuFrameMixin:AddFilter(filter)
 	self.Filters[filter.name] = filter
 end
 
-function VladsVendorFilterMenuFrameMixin:SetupFirstHook()
-	self.GetMerchantNumItems = _G.GetMerchantNumItems
-
-	_G.GetMerchantNumItems = function()
-		return self:GenerateIndexLookup()
-	end
-end
-
-function VladsVendorFilterMenuFrameMixin:SetupHooks()
-	for k, v in pairs({
-		-- supports hook disables
-		CanAffordMerchantItem = 1,
-		GetMerchantItemCostInfo = 1,
-		GetMerchantItemCostItem = 1,
-		GetMerchantItemInfo = 1,
-		GetMerchantItemLink = 1,
-		GetMerchantItemMaxStack = 1,
-		-- doesn't support hook disables
-		BuyMerchantItem = 2,
-		PickupMerchantItem = 2,
-		ShowMerchantSellCursor = 2,
-	}) do
-		local func = _G[k]
-
-		if type(func) == "function" then
-			self[k] = func
-
-			if v == 1 then
-				_G[k] = function(i, ...)
-					if not self.EnableHooks then
-						return self[k](i, ...)
-					else
-						local index = self.IndexLookup[i]
-						if index then
-							return self[k](index, ...)
-						end
-					end
-				end
-			elseif v == 2 then
-				_G[k] = function(i, ...)
-					local index = self.IndexLookup[i]
-					if index then
-						return self[k](index, ...)
-					end
-				end
-			end
-		end
-	end
-
-	if WOW_PROJECT_ID == WOW_PROJECT_MAINLINE then
-		self.C_MerchantFrame_IsMerchantItemRefundable = _G.C_MerchantFrame.IsMerchantItemRefundable
-
-		_G.C_MerchantFrame.IsMerchantItemRefundable = function(i, ...)
-			if not self.EnableHooks then
-				return self.C_MerchantFrame_IsMerchantItemRefundable(i, ...)
-			else
-				local index = self.IndexLookup[i]
-				if index then
-					return self.C_MerchantFrame_IsMerchantItemRefundable(index, ...)
-				end
-			end
-		end
-	end
-
-	local frame = EnumerateFrames()
-	while frame do
-		if frame:GetObjectType() == "GameTooltip" and not self.HookedGameTooltip[frame] then
-			self.HookedGameTooltip[frame] = true
-			local SetMerchantItem = frame.SetMerchantItem
-			frame.SetMerchantItem = function(tip, i, ...)
-				self.EnableHooks = false
-				SetMerchantItem(tip, self.IndexLookup[i], ...)
-				self.EnableHooks = true
-			end
-			local SetMerchantCostItem = frame.SetMerchantCostItem
-			frame.SetMerchantCostItem = function(tip, i, ...)
-				self.EnableHooks = false
-				SetMerchantCostItem(tip, self.IndexLookup[i], ...)
-				self.EnableHooks = true
-			end
-		end
-		frame = EnumerateFrames(frame)
-	end
-end
-
-function VladsVendorFilterMenuFrameMixin:GenerateIndexLookup()
-	if self.SetupHooks then
-		self:SetupHooks()
-		self.SetupHooks = nil
-	end
-
-	local allDisplayed = true
-	local filtered
-
-	table.wipe(self.IndexLookup)
-
-	self.IndexLookupCount = 0
-	self.IndexLookup[self.IndexLookupCount] = 0
-
-	-- local debugTemp = 0 -- DEBUG
-	-- local debugAddItem = 0 -- DEBUG
-	-- local debugIsFiltered = 0 -- DEBUG
-	-- local debugIsRelevant = 0 -- DEBUG
-
-	for i = 1, self.GetMerchantNumItems(), 1 do
-		local link = self.GetMerchantItemLink(i)
-
-		if link then
-			filtered = nil
-
-			for k, filter in pairs(self.Filters) do
-				-- debugTemp = GetTimePreciseSec() -- DEBUG
-				filter:AddItem(i, link)
-				-- debugAddItem = debugAddItem + (GetTimePreciseSec() - debugTemp) -- DEBUG
-			end
-		end
-	end
-
-	for i = 1, self.GetMerchantNumItems(), 1 do
-		local link = self.GetMerchantItemLink(i)
-
-		if link then
-			filtered = nil
-
-			for k, filter in pairs(self.Filters) do
-				-- debugTemp = GetTimePreciseSec() -- DEBUG
-				if filter:IsFiltered(i, link) then
-					-- debugIsFiltered = debugIsFiltered + (GetTimePreciseSec() - debugTemp) -- DEBUG
-					-- debugTemp = GetTimePreciseSec() -- DEBUG
-					if filter:IsRelevant() then
-						filtered = true
-					end
-					-- debugIsRelevant = debugIsRelevant + (GetTimePreciseSec() - debugTemp) -- DEBUG
-				else
-					-- debugIsFiltered = debugIsFiltered + (GetTimePreciseSec() - debugTemp) -- DEBUG
-				end
-			end
-
-			if filtered then
-				allDisplayed = false
-			else
-				self.IndexLookupCount = self.IndexLookupCount + 1
-				self.IndexLookup[self.IndexLookupCount] = i
-			end
-
-		else
-			self.IndexLookupCount = self.IndexLookupCount + 1
-			self.IndexLookup[self.IndexLookupCount] = i
-		end
-	end
-
-	-- print(format("AddItem %.4f IsFiltered %.4f IsRelevant %.4f", debugAddItem, debugIsFiltered, debugIsRelevant)) -- DEBUG
-
-	return self.IndexLookupCount
-end
-
 function VladsVendorFilterMenuFrameMixin:RefreshDropdown()
 	ToggleDropDownMenu(1, nil, self, self.Button, 0, 0)
 	ToggleDropDownMenu(1, nil, self, self.Button, 0, 0)
@@ -228,17 +66,15 @@ function VladsVendorFilterMenuFrameMixin:RefreshDropdown()
 end
 
 function VladsVendorFilterMenuFrameMixin:RefreshFrames()
-	local frame = EnumerateFrames()
-	while frame do
-		if frame:IsEventRegistered("MERCHANT_UPDATE") then
-			local func = frame:GetScript("OnEvent")
-			if func then
-				func(frame, "MERCHANT_UPDATE")
+	local items = VladsVendorDataProvider:GetMerchantItems()
+	for _, itemData in ipairs(items) do
+		if not itemData:IsPending() then
+			for _, filter in pairs(self.Filters) do
+				filter:AddItem(itemData)
 			end
 		end
-		frame = EnumerateFrames(frame)
 	end
-	self:GenerateIndexLookup()
+	VladsVendorDataProvider:ApplyFilters(self.Filters)
 end
 
 function VladsVendorFilterMenuFrameMixin:DropdownInitialize(level)
@@ -269,7 +105,6 @@ function VladsVendorFilterMenuFrameMixin:DropdownInitialize(level)
 		for i = 1, sortedIndex do
 			local filterKey = sorted[i]
 			local filter = self.Filters[filterKey]
-
 			if filter:IsRelevant() then
 				info.text = NORMAL_FONT_COLOR_CODE .. filter.name
 				UIDropDownMenu_AddButton(info, level)

@@ -29,15 +29,15 @@ function filter:ShowAll()
 	table.wipe(self.equipLoc_filtered)
 end
 
-function filter:AddItem(index, link)
-	local _, _, _, _, _, _, _, _, itemEquipLoc = GetItemInfo(link)
+function filter:AddItem(itemData)
+	local _, _, _, _, _, _, _, _, itemEquipLoc = GetItemInfo(itemData.itemLink)
 	if not itemEquipLoc then
 		return
 	end
 	if _G[itemEquipLoc] then
 		self.equipLoc[itemEquipLoc] = true
 	end
-	self.options[itemEquipLoc] = true
+	-- self.options[itemEquipLoc] = true -- TODO: changed the default to true instead of nil/not checked state
 end
 
 function filter:ClearAll()
@@ -46,9 +46,9 @@ function filter:ClearAll()
 	table.wipe(self.equipLoc)
 end
 
-function filter:IsFiltered(index, link)
+function filter:IsFiltered(itemData)
 	if next(self.equipLoc_filtered) then
-		local _, _, _, _, _, _, _, _, itemEquipLoc = GetItemInfo(link)
+		local _, _, _, _, _, _, _, _, itemEquipLoc = GetItemInfo(itemData.itemLink)
 		if not itemEquipLoc then
 			return
 		end

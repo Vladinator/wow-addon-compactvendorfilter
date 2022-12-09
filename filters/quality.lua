@@ -41,12 +41,11 @@ function filter:ShowAll()
 	table.wipe(self.qualities_filtered)
 end
 
-function filter:AddItem(index, link)
-	local _, _, quality = GetItemInfo(link)
-	if not quality then
+function filter:AddItem(itemData)
+	if not itemData.quality then
 		return
 	end
-	self.qualities[quality] = true
+	self.qualities[itemData.quality] = true
 end
 
 function filter:ClearAll()
@@ -55,13 +54,12 @@ function filter:ClearAll()
 	table.wipe(self.qualities)
 end
 
-function filter:IsFiltered(index, link)
+function filter:IsFiltered(itemData)
 	if next(self.qualities_filtered) then
-		local _, _, quality = GetItemInfo(link)
-		if not quality then
+		if not itemData.quality then
 			return
 		end
-		return not self.qualities_filtered[quality]
+		return not self.qualities_filtered[itemData.quality]
 	end
 	return false
 end

@@ -22,8 +22,8 @@ function filter:ShowAll()
 	self.usable = false
 end
 
-function filter:AddItem(index, link)
-	self.linkList[link] = index
+function filter:AddItem(itemData)
+	self.linkList[itemData.index] = itemData
 end
 
 function filter:ClearAll()
@@ -32,22 +32,19 @@ function filter:ClearAll()
 	table.wipe(self.linkList)
 end
 
-function filter:IsFiltered(index, link)
+function filter:IsFiltered(itemData)
 	if not self.usable then
 		return false
 	end
-	local _, _, _, _, _, isUsable = self.parent.GetMerchantItemInfo(index)
-	return not isUsable
+	return not itemData.isUsable
 end
 
 function filter:IsRelevant()
 	local usable = 0
 	local unusable = 0
 
-	for link, index in pairs(self.linkList) do
-		local _, _, _, _, _, isUsable = self.parent.GetMerchantItemInfo(index)
-
-		if isUsable then
+	for _, itemData in pairs(self.linkList) do
+		if itemData.isUsable then
 			usable = usable + 1
 		else
 			unusable = unusable + 1
