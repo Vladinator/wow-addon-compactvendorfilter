@@ -132,12 +132,11 @@ local CompactVendorFilterFrameTemplate do
         self:EnableMouse(true)
         self:Hide()
         FrameUtil.RegisterFrameForEvents(self, self.Events)
-        self.Filters = {}
+        self.Filters = {} ---@type table<string, CompactVendorFilterTemplate>
         self.DropdownInfo = {} ---@type DropdownInfoPolyfill
-        self.DropdownSortedFilters = {}
+        self.DropdownSortedFilters = {} ---@type string[]
         self.VendorOpen = false
         UIDropDownMenu_SetInitializeFunction(self, self.DropdownInitialize)
-        self.MerchantDataProvider:RegisterCallback(self.MerchantDataProvider.Event.OnUpdate, function(_, isReady) if not isReady then return end self:RefreshFrames() end)
     end
 
     ---@param event WowEvent
@@ -154,7 +153,7 @@ local CompactVendorFilterFrameTemplate do
 
     function CompactVendorFilterFrameTemplate:MerchantOpen()
         self.VendorOpen = true
-        self:RefreshFrames()
+        self:Refresh()
     end
 
     function CompactVendorFilterFrameTemplate:MerchantClose()
@@ -171,14 +170,14 @@ local CompactVendorFilterFrameTemplate do
         assert(type(filter.name) == "string", "CompactVendorFilter AddFilter requires a filter name.")
         assert(type(filter.defaults) == "table", "CompactVendorFilter AddFilter requires filter defaults.")
         assert(type(filter.OnLoad) == "function", "CompactVendorFilter AddFilter requires a filter object with a OnLoad method.")
-        assert(type(filter.ResetFilter) == "function", "CompactVendorFilter AddFilter requires a filter object with a ResetFilter method.")
-        assert(type(filter.FilterAll) == "function", "CompactVendorFilter AddFilter requires a filter object with a FilterAll method.")
-        assert(type(filter.ShowAll) == "function", "CompactVendorFilter AddFilter requires a filter object with a ShowAll method.")
         assert(type(filter.AddItem) == "function", "CompactVendorFilter AddFilter requires a filter object with a AddItem method.")
         assert(type(filter.ClearAll) == "function", "CompactVendorFilter AddFilter requires a filter object with a ClearAll method.")
-        assert(type(filter.IsFiltered) == "function", "CompactVendorFilter AddFilter requires a filter object with a IsFiltered method.")
+        assert(type(filter.ResetFilter) == "function", "CompactVendorFilter AddFilter requires a filter object with a ResetFilter method.")
+        assert(type(filter.ShowAll) == "function", "CompactVendorFilter AddFilter requires a filter object with a ShowAll method.")
+        assert(type(filter.FilterAll) == "function", "CompactVendorFilter AddFilter requires a filter object with a FilterAll method.")
         assert(type(filter.IsRelevant) == "function", "CompactVendorFilter AddFilter requires a filter object with a IsRelevant method.")
         assert(type(filter.GetDropdown) == "function", "CompactVendorFilter AddFilter requires a filter object with a GetDropdown method.")
+        assert(type(filter.IsFiltered) == "function", "CompactVendorFilter AddFilter requires a filter object with a IsFiltered method.")
         filter:OnLoad(self)
         self.Filters[filter.name] = filter
         self.MerchantDataProvider:AddFilter(function(...) return filter:IsFiltered(...) end)
@@ -188,13 +187,19 @@ local CompactVendorFilterFrameTemplate do
     function CompactVendorFilterFrameTemplate:RefreshDropdown()
         ToggleDropDownMenu(1, nil, self, self.Button, 0, 0)
         ToggleDropDownMenu(1, nil, self, self.Button, 0, 0)
-        self:RefreshFrames()
+        self:Refresh()
     end
 
-    function CompactVendorFilterFrameTemplate:RefreshFrames()
-        -- print("RefreshFrames()") -- TODO: DEPRECATED?
+    function CompactVendorFilterFrameTemplate:Refresh()
+        for _, filter in pairs(self.Filters) do
+            if not filter:IsRelevant() then
+                filter:ShowAll()
+            end
+        end
+        self.MerchantDataProvider:Refresh()
     end
 
+    ---@param level number?
     function CompactVendorFilterFrameTemplate:DropdownInitialize(level)
         if not level then
             return
@@ -202,21 +207,21 @@ local CompactVendorFilterFrameTemplate do
         if level == 1 then
             local sorted = self.DropdownSortedFilters
             table.wipe(sorted)
-            local sortedIndex = 0
-            for k in pairs(self.Filters) do
-                sortedIndex = sortedIndex + 1
-                sorted[sortedIndex] = k
+            local index = 0
+            for name, _ in pairs(self.Filters) do
+                index = index + 1
+                sorted[index] = name
             end
             table.sort(sorted)
             local info = self:GetDropdownInfo(true)
             info.notCheckable = true
             info.isTitle = true
             info.keepShownOnClick = true
-            for i = 1, sortedIndex do
-                local filterKey = sorted[i]
-                local filter = self.Filters[filterKey]
+            for i = 1, index do
+                local name = sorted[i]
+                local filter = self.Filters[name]
                 if filter:IsRelevant() then
-                    info.text = NORMAL_FONT_COLOR_CODE .. filter.name
+                    info.text = format("%s%s%s", NORMAL_FONT_COLOR_CODE, filter.name, FONT_COLOR_CODE_CLOSE)
                     UIDropDownMenu_AddButton(info, level)
                     filter:GetDropdown(level)
                 end
@@ -224,20 +229,24 @@ local CompactVendorFilterFrameTemplate do
             info.notCheckable = true
             info.isTitle = nil
             info.disabled = nil
-            info.text = GREEN_FONT_COLOR_CODE .. COMBAT_LOG_MENU_EVERYTHING
+            info.text = format("%s%s%s", GREEN_FONT_COLOR_CODE, COMBAT_LOG_MENU_EVERYTHING, FONT_COLOR_CODE_CLOSE)
             ---@diagnostic disable-next-line: duplicate-set-field
             info.func = function()
-                for k, filter in pairs(self.Filters) do
-                    filter:ShowAll()
+                for _, filter in pairs(self.Filters) do
+                    if filter:IsRelevant() then
+                        filter:ShowAll()
+                    end
                 end
                 self:RefreshDropdown()
             end
             UIDropDownMenu_AddButton(info, level)
-            info.text = NORMAL_FONT_COLOR_CODE .. RESET
+            info.text = format("%s%s%s", NORMAL_FONT_COLOR_CODE, RESET, FONT_COLOR_CODE_CLOSE)
             ---@diagnostic disable-next-line: duplicate-set-field
             info.func = function()
-                for k, filter in pairs(self.Filters) do
-                    filter:ResetFilter()
+                for _, filter in pairs(self.Filters) do
+                    if filter:IsRelevant() then
+                        filter:ResetFilter()
+                    end
                 end
                 self:RefreshDropdown()
             end
@@ -251,8 +260,10 @@ local CompactVendorFilterFrameTemplate do
             end
             UIDropDownMenu_AddButton(info, level)
         elseif level == 2 then
-            for k, filter in pairs(self.Filters) do
-                filter:GetDropdown(level)
+            for _, filter in pairs(self.Filters) do
+                if filter:IsRelevant() then
+                    filter:GetDropdown(level)
+                end
             end
         end
     end
@@ -297,10 +308,13 @@ end
 ---@class CompactVendorFilterTemplate
 local CompactVendorFilterTemplate do
 
+    ---@alias CompactVendorFilterTemplateDefaults table
+
     ---@class CompactVendorFilterTemplate
     ---@field public parent CompactVendorFilterFrameTemplate
+    ---@field public items MerchantItem[]
     ---@field public name string
-    ---@field public defaults table
+    ---@field public defaults CompactVendorFilterTemplateDefaults
 
     CompactVendorFilterTemplate = {}
     _G.CompactVendorFilterTemplate = CompactVendorFilterTemplate
@@ -308,29 +322,30 @@ local CompactVendorFilterTemplate do
     ---@param parent CompactVendorFilterFrameTemplate
     function CompactVendorFilterTemplate:OnLoad(parent)
         self.parent = parent
+        self.items = {}
+        if self.defaults == nil then
+            self.defaults = {}
+        end
+        self:ResetFilter()
+    end
+
+    ---@param itemData MerchantItem
+    function CompactVendorFilterTemplate:AddItem(itemData)
+        self.items[itemData.index] = itemData
+    end
+
+    function CompactVendorFilterTemplate:ClearAll()
+        self:ResetFilter()
+        table.wipe(self.items)
     end
 
     function CompactVendorFilterTemplate:ResetFilter()
     end
 
-    function CompactVendorFilterTemplate:FilterAll()
-    end
-
     function CompactVendorFilterTemplate:ShowAll()
     end
 
-    ---@param itemData MerchantItem
-    function CompactVendorFilterTemplate:AddItem(itemData)
-    end
-
-    function CompactVendorFilterTemplate:ClearAll()
-        self:ResetFilter()
-    end
-
-    ---@param itemData MerchantItem
-    ---@return boolean? isFiltered #The return should be `nil` if the filter is not relevant to this item, so the item doesn't get filtered, otherwise `true` or `false` is expected.
-    function CompactVendorFilterTemplate:IsFiltered(itemData)
-        return false
+    function CompactVendorFilterTemplate:FilterAll()
     end
 
     function CompactVendorFilterTemplate:IsRelevant()
@@ -341,14 +356,167 @@ local CompactVendorFilterTemplate do
     function CompactVendorFilterTemplate:GetDropdown(level)
     end
 
-    function CompactVendorFilterTemplate:New()
+    ---@param itemData MerchantItem
+    ---@return boolean? isFiltered #The return should be `nil` if the filter is not relevant to this item, so the item doesn't get filtered, otherwise `true` or `false` is expected.
+    function CompactVendorFilterTemplate:IsFiltered(itemData)
+        return false
+    end
+
+    ---@param name string?
+    ---@param defaults CompactVendorFilterTemplateDefaults?
+    function CompactVendorFilterTemplate:New(name, defaults)
         local filter = {} ---@type CompactVendorFilterTemplate
         Mixin(filter, self)
+        if name ~= nil then
+            filter.name = name
+        end
+        if defaults ~= nil then
+            filter.defaults = defaults
+        end
         return filter
     end
 
     function CompactVendorFilterTemplate:Publish()
         CompactVendorFilterFrame:AddFilter(self)
+    end
+
+end
+
+---@class CompactVendorFilterToggleTemplate
+local CompactVendorFilterToggleTemplate do
+
+    ---@alias CompactVendorFilterToggleTemplateIsChecked fun(self: CompactVendorFilterToggleTemplate): boolean?
+
+    ---@class CompactVendorFilterToggleTemplate : CompactVendorFilterTemplate
+    ---@field public key string
+    ---@field public itemDataKey string
+    ---@field public isChecked? CompactVendorFilterToggleTemplateIsChecked
+    ---@field public isLogicReversed? boolean
+    ---@field public isCheckLogicReversed? boolean
+
+    CompactVendorFilterToggleTemplate = {}
+    _G.CompactVendorFilterToggleTemplate = CompactVendorFilterToggleTemplate
+
+    Mixin(CompactVendorFilterToggleTemplate, CompactVendorFilterTemplate)
+
+    ---@type CompactVendorFilterToggleTemplateIsChecked
+    function CompactVendorFilterToggleTemplate:IsCheckedFallback()
+        local option = self[self.key]
+        if self.isLogicReversed then
+            return option
+        end
+        return not option
+    end
+
+    function CompactVendorFilterToggleTemplate:ResetFilter()
+        CompactVendorFilterTemplate.ResetFilter(self)
+        self[self.key] = self.defaults[self.key]
+    end
+
+    function CompactVendorFilterToggleTemplate:FilterAll()
+        CompactVendorFilterTemplate.FilterAll(self)
+        self[self.key] = self.isLogicReversed
+    end
+
+    function CompactVendorFilterToggleTemplate:ShowAll()
+        CompactVendorFilterTemplate.FilterAll(self)
+        self[self.key] = not self.isLogicReversed
+    end
+
+    ---@param itemData MerchantItem
+    function CompactVendorFilterToggleTemplate:IsFiltered(itemData)
+        local value = itemData[self.itemDataKey]
+        if value == nil then
+            return
+        end
+        local option = self:isChecked()
+        return not option and value
+    end
+
+    function CompactVendorFilterToggleTemplate:IsRelevant()
+        local enabled = false
+        local disabled = false
+        for _, itemData in pairs(self.items) do
+            local value = itemData[self.itemDataKey]
+            if value ~= nil then
+                if self.isLogicReversed then
+                    value = not value
+                end
+                if value then
+                    enabled = true
+                else
+                    disabled = true
+                end
+                if enabled and disabled then
+                    return true
+                end
+            end
+        end
+        return false
+    end
+
+    ---@param level number
+    function CompactVendorFilterToggleTemplate:GetDropdown(level)
+        if level ~= 1 then
+            return
+        end
+        local info = {} ---@type DropdownInfoPolyfill
+        info.keepShownOnClick = true
+        info.isNotRadio = true
+        info.text = self.name
+        if self.isCheckLogicReversed then
+            info.checked = not self:isChecked()
+        else
+            info.checked = self:isChecked()
+        end
+        info.func = function()
+            self[self.key] = not self[self.key]
+            self.parent:RefreshDropdown()
+        end
+        UIDropDownMenu_AddButton(info, level)
+    end
+
+    ---@param name string?
+    ---@param defaults CompactVendorFilterTemplateDefaults?
+    ---@param key string
+    ---@param itemDataKey string
+    ---@param isChecked CompactVendorFilterToggleTemplateIsChecked?
+    ---@param isLogicReversed boolean?
+    ---@param isCheckLogicReversed boolean?
+    function CompactVendorFilterToggleTemplate:New(name, defaults, key, itemDataKey, isChecked, isLogicReversed, isCheckLogicReversed)
+        ---@type CompactVendorFilterToggleTemplate
+        local filter = CompactVendorFilterTemplate:New(name, defaults) ---@diagnostic disable-line: assign-type-mismatch
+        Mixin(filter, self)
+        filter.key = key
+        filter.itemDataKey = itemDataKey
+        filter.isChecked = isChecked or filter.IsCheckedFallback
+        filter.isLogicReversed = isLogicReversed
+        filter.isCheckLogicReversed = isCheckLogicReversed ~= false
+        return filter
+    end
+
+end
+
+---@class CompactVendorFilterDropDownTemplate
+local CompactVendorFilterDropDownTemplate do
+
+    ---@class CompactVendorFilterDropDownTemplate : CompactVendorFilterTemplate
+    ---@field public test? boolean
+
+    CompactVendorFilterDropDownTemplate = {}
+    _G.CompactVendorFilterDropDownTemplate = CompactVendorFilterDropDownTemplate
+
+    ---@param name string?
+    ---@param defaults CompactVendorFilterTemplateDefaults?
+    ---@param test boolean?
+    function CompactVendorFilterDropDownTemplate:New(name, defaults, test)
+        ---@type CompactVendorFilterDropDownTemplate
+        local filter = CompactVendorFilterTemplate:New(name, defaults) ---@diagnostic disable-line: assign-type-mismatch
+        Mixin(filter, self)
+        if test ~= nil then
+            filter.test = test
+        end
+        return filter
     end
 
 end

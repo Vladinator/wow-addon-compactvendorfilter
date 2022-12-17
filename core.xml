@@ -42,7 +42,14 @@
         </Scripts>
     </Frame>
 
+    <Script file="filters\affordable.lua" />
+    <!--Script file="filters\appearance.lua" /-->
+    <!--Script file="filters\equiploc.lua" /-->
     <Script file="filters\collected.lua" />
     <Script file="filters\known.lua" />
+    <Script file="filters\quality.lua" />
+    <!--Script file="filters\stats.lua" /-->
+    <!--Script file="filters\type.lua" /-->
+    <Script file="filters\usable.lua" />
 
 </Ui>
