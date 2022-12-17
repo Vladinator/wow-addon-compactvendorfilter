@@ -180,6 +180,7 @@ local CompactVendorFilterFrameTemplate do
         assert(type(filter.GetDropdown) == "function", "CompactVendorFilter AddFilter requires a filter object with a GetDropdown method.")
         filter:OnLoad(self)
         self.Filters[filter.name] = filter
+        MerchantDataProvider:AddFilter(function(...) return filter:IsFiltered(...) end)
         return true
     end
 
