@@ -73,7 +73,7 @@ local CompactVendorFilterButtonTemplate do
     _G.CompactVendorFilterButtonTemplate = CompactVendorFilterButtonTemplate
 
     function CompactVendorFilterButtonTemplate:OnLoad()
-        self.Menu = CompactVendorFilterFrame
+        C_Timer.After(0.01, function() self.Menu = CompactVendorFilterFrame end) -- HOTFIX: the template XML loads after the frame runs this code so the reference isn't available just yet
         self:SetParent(MerchantFrameCloseButton)
         self:RegisterForClicks("LeftButtonUp")
         self:SetPoint("RIGHT", MerchantFrameCloseButton, "LEFT", 8 - 4, 0)
@@ -124,6 +124,7 @@ local CompactVendorFilterFrameTemplate do
     }
 
     function CompactVendorFilterFrameTemplate:OnLoad()
+        self.MerchantDataProvider = CompactVendorFrame.ScrollBox:GetDataProvider()
         self.Button = CompactVendorFilterButton
         self:SetParent(self.Button)
         self:SetFrameStrata("HIGH")
@@ -136,7 +137,7 @@ local CompactVendorFilterFrameTemplate do
         self.DropdownSortedFilters = {}
         self.VendorOpen = false
         UIDropDownMenu_SetInitializeFunction(self, self.DropdownInitialize)
-        MerchantDataProvider:RegisterCallback(MerchantDataProvider.Event.OnUpdate, function(_, isReady) if not isReady then return end self:RefreshFrames() end)
+        self.MerchantDataProvider:RegisterCallback(self.MerchantDataProvider.Event.OnUpdate, function(_, isReady) if not isReady then return end self:RefreshFrames() end)
     end
 
     ---@param event WowEvent
@@ -180,7 +181,7 @@ local CompactVendorFilterFrameTemplate do
         assert(type(filter.GetDropdown) == "function", "CompactVendorFilter AddFilter requires a filter object with a GetDropdown method.")
         filter:OnLoad(self)
         self.Filters[filter.name] = filter
-        MerchantDataProvider:AddFilter(function(...) return filter:IsFiltered(...) end)
+        self.MerchantDataProvider:AddFilter(function(...) return filter:IsFiltered(...) end)
         return true
     end
 
@@ -191,7 +192,7 @@ local CompactVendorFilterFrameTemplate do
     end
 
     function CompactVendorFilterFrameTemplate:RefreshFrames()
-        print("RefreshFrames()") -- TODO: DEPRECATED?
+        -- print("RefreshFrames()") -- TODO: DEPRECATED?
     end
 
     function CompactVendorFilterFrameTemplate:DropdownInitialize(level)
@@ -327,6 +328,7 @@ local CompactVendorFilterTemplate do
     end
 
     ---@param itemData MerchantItem
+    ---@return boolean? isFiltered #The return should be `nil` if the filter is not relevant to this item, so the item doesn't get filtered, otherwise `true` or `false` is expected.
     function CompactVendorFilterTemplate:IsFiltered(itemData)
         return false
     end
@@ -346,7 +348,6 @@ local CompactVendorFilterTemplate do
     end
 
     function CompactVendorFilterTemplate:Publish()
-        assert(type(self.parent) == "table", "CompactVendorFilter Publish requires you to have created a `CompactVendorFilterTemplate:New()` filter and publish that one. Ensure that it does have a proper parent, defined when calling the `:OnLoad(parent)` method.")
         CompactVendorFilterFrame:AddFilter(self)
     end
 

@@ -42,6 +42,9 @@ end
 
 ---@param itemData MerchantItem
 function filter:IsFiltered(itemData)
+    if itemData.isLearned == nil then
+        return
+    end
     return not self.showKnown and itemData.isLearned
 end
 
@@ -49,13 +52,15 @@ function filter:IsRelevant()
     local known = false
     local unknown = false
     for _, itemData in pairs(self.items) do
-        if itemData.isLearned then
-            known = true
-        else
-            unknown = true
-        end
-        if known and unknown then
-            return true
+        if itemData.isLearned ~= nil then
+            if itemData.isLearned then
+                known = true
+            else
+                unknown = true
+            end
+            if known and unknown then
+                return true
+            end
         end
     end
     return false
