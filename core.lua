@@ -170,7 +170,6 @@ local CompactVendorFilterFrameTemplate do
         assert(type(filter.name) == "string", "CompactVendorFilter AddFilter requires a filter name.")
         assert(type(filter.defaults) == "table", "CompactVendorFilter AddFilter requires filter defaults.")
         assert(type(filter.OnLoad) == "function", "CompactVendorFilter AddFilter requires a filter object with a OnLoad method.")
-        assert(type(filter.AddItem) == "function", "CompactVendorFilter AddFilter requires a filter object with a AddItem method.")
         assert(type(filter.ClearAll) == "function", "CompactVendorFilter AddFilter requires a filter object with a ClearAll method.")
         assert(type(filter.ResetFilter) == "function", "CompactVendorFilter AddFilter requires a filter object with a ResetFilter method.")
         assert(type(filter.ShowAll) == "function", "CompactVendorFilter AddFilter requires a filter object with a ShowAll method.")
@@ -197,6 +196,11 @@ local CompactVendorFilterFrameTemplate do
             end
         end
         self.MerchantDataProvider:Refresh()
+    end
+
+    ---@return MerchantItem[] items
+    function CompactVendorFilterFrameTemplate:GetMerchantItems()
+        return self.MerchantDataProvider:GetMerchantItems()
     end
 
     ---@param level number?
@@ -233,9 +237,7 @@ local CompactVendorFilterFrameTemplate do
             ---@diagnostic disable-next-line: duplicate-set-field
             info.func = function()
                 for _, filter in pairs(self.Filters) do
-                    if filter:IsRelevant() then
-                        filter:ShowAll()
-                    end
+                    filter:ShowAll()
                 end
                 self:RefreshDropdown()
             end
@@ -312,7 +314,6 @@ local CompactVendorFilterTemplate do
 
     ---@class CompactVendorFilterTemplate
     ---@field public parent CompactVendorFilterFrameTemplate
-    ---@field public items MerchantItem[]
     ---@field public name string
     ---@field public defaults CompactVendorFilterTemplateDefaults
 
@@ -322,21 +323,14 @@ local CompactVendorFilterTemplate do
     ---@param parent CompactVendorFilterFrameTemplate
     function CompactVendorFilterTemplate:OnLoad(parent)
         self.parent = parent
-        self.items = {}
         if self.defaults == nil then
             self.defaults = {}
         end
         self:ResetFilter()
     end
 
-    ---@param itemData MerchantItem
-    function CompactVendorFilterTemplate:AddItem(itemData)
-        self.items[itemData.index] = itemData
-    end
-
     function CompactVendorFilterTemplate:ClearAll()
         self:ResetFilter()
-        table.wipe(self.items)
     end
 
     function CompactVendorFilterTemplate:ResetFilter()
@@ -434,9 +428,10 @@ local CompactVendorFilterToggleTemplate do
     end
 
     function CompactVendorFilterToggleTemplate:IsRelevant()
-        local enabled = false
-        local disabled = false
-        for _, itemData in pairs(self.items) do
+        local items = self.parent:GetMerchantItems()
+        local enabled = true
+        local disabled = true
+        for _, itemData in pairs(items) do
             local value = itemData[self.itemDataKey]
             if value ~= nil then
                 if self.isLogicReversed then
