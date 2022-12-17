@@ -418,6 +418,7 @@ local CompactVendorFilterToggleTemplate do
     end
 
     ---@param itemData MerchantItem
+    ---@return boolean? isFiltered
     function CompactVendorFilterToggleTemplate:IsFiltered(itemData)
         local value = itemData[self.itemDataKey]
         if value == nil then
@@ -429,22 +430,16 @@ local CompactVendorFilterToggleTemplate do
 
     function CompactVendorFilterToggleTemplate:IsRelevant()
         local items = self.parent:GetMerchantItems()
-        local enabled = true
-        local disabled = true
+        local disabled = false
+        local enabled = false
         for _, itemData in pairs(items) do
-            local value = itemData[self.itemDataKey]
-            if value ~= nil then
-                if self.isLogicReversed then
-                    value = not value
-                end
-                if value then
-                    enabled = true
-                else
-                    disabled = true
-                end
-                if enabled and disabled then
-                    return true
-                end
+            if self:IsFiltered(itemData) == false then
+                disabled = true
+            else
+                enabled = true
+            end
+            if disabled and enabled then
+                return true
             end
         end
         return false
