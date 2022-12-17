@@ -1,11 +1,11 @@
 local CompactVendorFilterTemplate = CompactVendorFilterTemplate ---@type CompactVendorFilterTemplate
 
-local filter = CompactVendorFilterTemplate:New() ---@class CompactVendorFilterKnown : CompactVendorFilterTemplate
+local filter = CompactVendorFilterTemplate:New() ---@class CompactVendorFilterCollected : CompactVendorFilterTemplate
 
-filter.name = "Known"
+filter.name = "Collected"
 
 filter.defaults = {
-    showKnown = false,
+    showCollected = false,
 }
 
 ---@param parent CompactVendorFilterFrameTemplate
@@ -16,18 +16,18 @@ function filter:OnLoad(parent)
 end
 
 function filter:ResetFilter()
-    self.showKnown = self.defaults.showCollected
+    self.showCollected = self.defaults.showCollected
 end
 
 function filter:FilterAll()
     if not self:IsRelevant() then
         return
     end
-    self.showKnown = false
+    self.showCollected = false
 end
 
 function filter:ShowAll()
-    self.showKnown = true
+    self.showCollected = true
 end
 
 ---@param itemData MerchantItem
@@ -42,14 +42,14 @@ end
 
 ---@param itemData MerchantItem
 function filter:IsFiltered(itemData)
-    return not self.showKnown and itemData.isLearned
+    return not self.showCollected and itemData.isCollected
 end
 
 function filter:IsRelevant()
     local known = false
     local unknown = false
     for _, itemData in pairs(self.items) do
-        if itemData.isLearned then
+        if itemData.isCollected then
             known = true
         else
             unknown = true
