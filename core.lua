@@ -51,11 +51,17 @@
 ---@field public isCollectedNumMax? number
 
 ---@class DropdownInfoPolyfill
+---@field public keepShownOnClick boolean?
+---@field public isNotRadio boolean?
 ---@field public notCheckable boolean?
+---@field public checked boolean?
 ---@field public isTitle boolean?
 ---@field public disabled boolean?
+---@field public colorCode string?
+---@field public hasArrow boolean?
+---@field public value any?
 ---@field public text string
----@field public func fun()
+---@field public func fun(self: Button, arg1: any?, arg2: any?, checked :boolean?, mouseButton: string?)
 
 local CloseDropDownMenus = CloseDropDownMenus ---@type fun(level?: number)
 local ToggleDropDownMenu = ToggleDropDownMenu ---@type fun(level?: number, value?: any, dropDownFrame?: Region, anchorName?: Region, xOffset?: number, yOffset?: number, menuList?: table, button?: string, autoHideDelay?: boolean)
@@ -154,6 +160,7 @@ local CompactVendorFilterFrameTemplate do
     function CompactVendorFilterFrameTemplate:MerchantOpen()
         self.VendorOpen = true
         self:Refresh()
+        C_Timer.After(0.25, function() self:Refresh() end) -- HOTFIX
     end
 
     function CompactVendorFilterFrameTemplate:MerchantClose()
@@ -170,6 +177,7 @@ local CompactVendorFilterFrameTemplate do
         assert(type(filter.name) == "string", "CompactVendorFilter AddFilter requires a filter name.")
         assert(type(filter.defaults) == "table", "CompactVendorFilter AddFilter requires filter defaults.")
         assert(type(filter.OnLoad) == "function", "CompactVendorFilter AddFilter requires a filter object with a OnLoad method.")
+        assert(type(filter.OnRefresh) == "function", "CompactVendorFilter AddFilter requires a filter object with a OnRefresh method.")
         assert(type(filter.ClearAll) == "function", "CompactVendorFilter AddFilter requires a filter object with a ClearAll method.")
         assert(type(filter.ResetFilter) == "function", "CompactVendorFilter AddFilter requires a filter object with a ResetFilter method.")
         assert(type(filter.ShowAll) == "function", "CompactVendorFilter AddFilter requires a filter object with a ShowAll method.")
@@ -191,6 +199,7 @@ local CompactVendorFilterFrameTemplate do
 
     function CompactVendorFilterFrameTemplate:Refresh()
         for _, filter in pairs(self.Filters) do
+            filter:OnRefresh()
             if not filter:IsRelevant() then
                 filter:ShowAll()
             end
@@ -329,6 +338,9 @@ local CompactVendorFilterTemplate do
         self:ResetFilter()
     end
 
+    function CompactVendorFilterTemplate:OnRefresh()
+    end
+
     function CompactVendorFilterTemplate:ClearAll()
         self:ResetFilter()
     end
@@ -396,6 +408,9 @@ local CompactVendorFilterToggleTemplate do
     ---@type CompactVendorFilterToggleTemplateIsChecked
     function CompactVendorFilterToggleTemplate:IsCheckedFallback()
         local option = self[self.key]
+        if option == nil then
+            return
+        end
         if self.isLogicReversed then
             return option
         end
@@ -414,7 +429,7 @@ local CompactVendorFilterToggleTemplate do
 
     function CompactVendorFilterToggleTemplate:ShowAll()
         CompactVendorFilterTemplate.FilterAll(self)
-        self[self.key] = not self.isLogicReversed
+        self[self.key] = nil
     end
 
     ---@param itemData MerchantItem
@@ -425,20 +440,28 @@ local CompactVendorFilterToggleTemplate do
             return
         end
         local option = self:isChecked()
-        return not option and value
+        if option == nil then
+            return
+        end
+        if not self:IsRelevant() then
+            return
+        end
+        local filtered = (option and value) or (not option and not value)
+        return filtered
     end
 
     function CompactVendorFilterToggleTemplate:IsRelevant()
         local items = self.parent:GetMerchantItems()
-        local disabled = false
         local enabled = false
+        local disabled = false
         for _, itemData in pairs(items) do
-            if self:IsFiltered(itemData) == false then
-                disabled = true
-            else
+            local value = itemData[self.itemDataKey]
+            if value then
                 enabled = true
+            else
+                disabled = true
             end
-            if disabled and enabled then
+            if enabled and disabled then
                 return true
             end
         end
@@ -454,10 +477,12 @@ local CompactVendorFilterToggleTemplate do
         info.keepShownOnClick = true
         info.isNotRadio = true
         info.text = self.name
-        if self.isCheckLogicReversed then
-            info.checked = not self:isChecked()
-        else
-            info.checked = self:isChecked()
+        info.checked = self:isChecked()
+        info.colorCode = nil
+        if info.checked == nil then
+            info.colorCode = GRAY_FONT_COLOR_CODE
+        elseif self.isCheckLogicReversed then
+            info.checked = not info.checked
         end
         info.func = function()
             self[self.key] = not self[self.key]
@@ -490,22 +515,231 @@ end
 ---@class CompactVendorFilterDropDownTemplate
 local CompactVendorFilterDropDownTemplate do
 
+    ---@alias CompactVendorFilterDropDownTemplateOnRefresh fun(self: CompactVendorFilterDropDownTemplate)
+    ---@alias CompactVendorFilterDropDownTemplateGetValue fun(self: CompactVendorFilterDropDownTemplate, value: any, itemData: MerchantItem): any?
+    ---@alias CompactVendorFilterDropDownTemplateHasValue fun(self: CompactVendorFilterDropDownTemplate, value: any, itemValue: any, itemData: MerchantItem): boolean?
+
+    ---@class CompactVendorFilterDropDownTemplateOption : DropdownInfoPolyfill
+    ---@field public index number?
+    ---@field public value any
+    ---@field public text string
+    ---@field public show boolean?
+    ---@field public checked boolean?
+
     ---@class CompactVendorFilterDropDownTemplate : CompactVendorFilterTemplate
-    ---@field public test? boolean
+    ---@field public itemDataKey string
+    ---@field public values any[]
+    ---@field public options CompactVendorFilterDropDownTemplateOption[]
+    ---@field public onRefresh CompactVendorFilterDropDownTemplateOnRefresh?
+    ---@field public getValue CompactVendorFilterDropDownTemplateGetValue?
+    ---@field public hasValue CompactVendorFilterDropDownTemplateHasValue?
 
     CompactVendorFilterDropDownTemplate = {}
     _G.CompactVendorFilterDropDownTemplate = CompactVendorFilterDropDownTemplate
 
+    function CompactVendorFilterDropDownTemplate:OnRefresh()
+        CompactVendorFilterTemplate.OnRefresh(self)
+        if self.onRefresh then
+            self:onRefresh()
+        end
+        for _, option in ipairs(self.options) do
+            option.show = self.values[option.value] ~= nil
+        end
+        self:SortOptions()
+    end
+
+    function CompactVendorFilterDropDownTemplate:ResetFilter()
+        CompactVendorFilterTemplate.ResetFilter(self)
+        for _, option in ipairs(self.options) do
+            option.checked = true
+        end
+    end
+
+    function CompactVendorFilterDropDownTemplate:FilterAll()
+        CompactVendorFilterTemplate.FilterAll(self)
+        for _, option in ipairs(self.options) do
+            option.checked = false
+        end
+    end
+
+    function CompactVendorFilterDropDownTemplate:ShowAll()
+        CompactVendorFilterTemplate.FilterAll(self)
+        for _, option in ipairs(self.options) do
+            option.checked = true
+        end
+    end
+
+    ---@param itemData MerchantItem
+    ---@return boolean? isFiltered
+    function CompactVendorFilterDropDownTemplate:IsFiltered(itemData)
+        local value = itemData[self.itemDataKey]
+        if self.getValue then
+            value = self:getValue(value, itemData)
+        end
+        local hasValue = self.hasValue
+        for _, option in ipairs(self.options) do
+            if hasValue then
+                if hasValue(self, option.value, value, itemData) == true then
+                    return not option.checked
+                end
+            elseif option.value == value then
+                return not option.checked
+            end
+        end
+        return false
+    end
+
+    function CompactVendorFilterDropDownTemplate:IsRelevant()
+        local count = 0
+        for _, _ in pairs(self.values) do
+            count = count + 1
+        end
+        return count > 1
+    end
+
+    ---@param level number
+    function CompactVendorFilterDropDownTemplate:GetDropdown(level)
+        if level == 1 then
+            local info = {} ---@type DropdownInfoPolyfill
+            info.keepShownOnClick = true
+            info.isNotRadio = true
+            info.text = self.name
+            info.value = self.name
+            info.notCheckable = true
+            info.hasArrow = true
+            info.func = function()
+                local checked
+                for _, option in ipairs(self.options) do
+                    if option.show then
+                        if checked == nil then
+                            checked = option.checked
+                        end
+                        option.checked = not checked
+                    end
+                end
+                self.parent:RefreshDropdown()
+            end
+            UIDropDownMenu_AddButton(info, level)
+        elseif level == 2 and self.name == UIDROPDOWNMENU_MENU_VALUE then
+            local info = {} ---@type DropdownInfoPolyfill
+            info.keepShownOnClick = true
+            info.isNotRadio = true
+            for _, option in ipairs(self.options) do
+                if option.show then
+                    info.text = option.text
+                    info.colorCode = option.colorCode
+                    info.checked = option.checked
+                    info.arg1 = option
+                    info.func = function()
+                        option.checked = not option.checked
+                        self.parent:Refresh()
+                    end
+                    UIDropDownMenu_AddButton(info, level)
+                end
+            end
+        end
+    end
+
+    ---@param valueOrText any
+    ---@return CompactVendorFilterDropDownTemplateOption? option, number? index
+    function CompactVendorFilterDropDownTemplate:GetOption(valueOrText)
+        for index, option in ipairs(self.options) do
+            if option.value == valueOrText or option.text == valueOrText then
+                return option, index
+            end
+        end
+    end
+
+    function CompactVendorFilterDropDownTemplate:SortOptions()
+        table.sort(self.options, function(a, b)
+            local x = a.index
+            local y = b.index
+            if x and y then
+                return x < y
+            end
+            return a.text < b.text
+        end)
+    end
+
     ---@param name string?
     ---@param defaults CompactVendorFilterTemplateDefaults?
-    ---@param test boolean?
-    function CompactVendorFilterDropDownTemplate:New(name, defaults, test)
+    ---@param itemDataKey string
+    ---@param options CompactVendorFilterDropDownTemplateOption[]
+    ---@param onRefresh CompactVendorFilterDropDownTemplateOnRefresh?
+    ---@param getValue CompactVendorFilterDropDownTemplateGetValue?
+    ---@param hasValue CompactVendorFilterDropDownTemplateHasValue?
+    function CompactVendorFilterDropDownTemplate:New(name, defaults, itemDataKey, options, onRefresh, getValue, hasValue)
         ---@type CompactVendorFilterDropDownTemplate
         local filter = CompactVendorFilterTemplate:New(name, defaults) ---@diagnostic disable-line: assign-type-mismatch
         Mixin(filter, self)
-        if test ~= nil then
-            filter.test = test
+        filter.values = Mixin({}, defaults and defaults.values or {})
+        filter.itemDataKey = itemDataKey
+        filter.options = options
+        filter.onRefresh = onRefresh
+        filter.getValue = getValue
+        filter.hasValue = hasValue
+        for _, option in pairs(options) do
+            if option.checked == nil then
+                option.checked = true
+            end
+            if option.show == nil then
+                option.show = true
+            end
         end
+        return filter
+    end
+
+end
+
+---@class CompactVendorFilterDropDownWrapperTemplate
+local CompactVendorFilterDropDownWrapperTemplate do
+
+    ---@class CompactVendorFilterDropDownWrapperTemplate : CompactVendorFilterDropDownTemplate
+    ---@field public valueIsLocaleKey boolean?
+
+    CompactVendorFilterDropDownWrapperTemplate = {}
+    _G.CompactVendorFilterDropDownWrapperTemplate = CompactVendorFilterDropDownWrapperTemplate
+
+    function CompactVendorFilterDropDownWrapperTemplate:OnRefreshWrapper()
+        local items = self.parent:GetMerchantItems()
+        local itemDataKey = self.itemDataKey
+        local values = self.values
+        local options = self.options
+        table.wipe(values)
+        for _, itemData in ipairs(items) do
+            local value = itemData[itemDataKey] ---@type string
+            values[value] = true
+        end
+        for _, option in ipairs(options) do
+            option.show = false
+        end
+        for value, _ in pairs(values) do
+            local option = self:GetOption(value)
+            if not option then
+                option = {}
+                options[#options + 1] = option
+            end
+            option.value = value
+            if self.valueIsLocaleKey then
+                option.text = tostring(_G[value])
+            else
+                option.text = tostring(value)
+            end
+            option.show = true
+            if option.checked == nil then
+                option.checked = true
+            end
+        end
+    end
+
+    ---@param name string?
+    ---@param itemDataKey string
+    ---@param valueIsLocaleKey boolean?
+    function CompactVendorFilterDropDownWrapperTemplate:New(name, itemDataKey, valueIsLocaleKey)
+        ---@type CompactVendorFilterDropDownWrapperTemplate
+        local filter = CompactVendorFilterDropDownTemplate:New(name, {}, itemDataKey, {}, self.OnRefreshWrapper) ---@diagnostic disable-line: assign-type-mismatch
+        Mixin(filter, self)
+        filter.valueIsLocaleKey = valueIsLocaleKey
         return filter
     end
 

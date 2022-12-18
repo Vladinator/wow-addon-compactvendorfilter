@@ -1,7 +1,7 @@
 local CompactVendorFilterToggleTemplate = CompactVendorFilterToggleTemplate ---@type CompactVendorFilterToggleTemplate
 
 local filter = CompactVendorFilterToggleTemplate:New(
-    "Usable", { showUsable = true },
+    "Usable", { showUsable = nil },
     "showUsable", "isUsable"
 )
 
