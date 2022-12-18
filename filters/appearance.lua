@@ -1,4 +1,4 @@
-local CompactVendorFilterDropDownTemplate = CompactVendorFilterDropDownTemplate ---@type CompactVendorFilterDropDownTemplate
+local CompactVendorFilterDropDownToggleWrapperTemplate = CompactVendorFilterDropDownToggleWrapperTemplate ---@type CompactVendorFilterDropDownToggleWrapperTemplate
 
 local IsCollected do
 
@@ -64,47 +64,13 @@ local IsCollected do
 
 end
 
-local filter = CompactVendorFilterDropDownTemplate:New(
-    "Appearance", {},
-    "itemLink", {},
-    function(self)
-        local items = self.parent:GetMerchantItems()
-        local itemDataKey = self.itemDataKey
-        local values = self.values
-        local options = self.options
-        table.wipe(values)
-        for _, itemData in ipairs(items) do
-            local itemLink = itemData[itemDataKey]
-            local value = IsCollected(itemLink)
-            if value ~= nil then
-                values[value] = true
-            end
-        end
-        for _, option in ipairs(options) do
-            option.show = false
-        end
-        for value, _ in pairs(values) do
-            local option = self:GetOption(value)
-            if not option then
-                option = {}
-                options[#options + 1] = option
-            end
-            option.value = value
-            option.text = value and TRANSMOG_COLLECTED or NOT_COLLECTED
-            option.show = true
-            if option.checked == nil then
-                option.checked = true
-            end
-        end
-    end,
-    function(_, itemLink)
+local filter = CompactVendorFilterDropDownToggleWrapperTemplate:New(
+    "Appearance",
+    function(self, itemLink)
         return IsCollected(itemLink)
     end,
-    function(_, value, itemValue)
-        if itemValue == nil then
-            return
-        end
-        return value == itemValue
+    function(self, value)
+        return value and TRANSMOG_COLLECTED or NOT_COLLECTED
     end
 )
 

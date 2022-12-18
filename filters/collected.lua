@@ -1,8 +1,14 @@
-local CompactVendorFilterToggleTemplate = CompactVendorFilterToggleTemplate ---@type CompactVendorFilterToggleTemplate
+local CompactVendorFilterDropDownToggleWrapperTemplate = CompactVendorFilterDropDownToggleWrapperTemplate ---@type CompactVendorFilterDropDownToggleWrapperTemplate
 
-local filter = CompactVendorFilterToggleTemplate:New(
-    "Collected", { showCollected = false },
-    "showCollected", "isCollected"
+local filter = CompactVendorFilterDropDownToggleWrapperTemplate:New(
+    "Collected",
+    function(self, itemLink, itemData)
+        return itemData.isCollected
+    end,
+    function(self, value)
+        return value and YES or NO
+    end,
+    true
 )
 
 filter:Publish()

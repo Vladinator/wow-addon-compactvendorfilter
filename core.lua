@@ -234,8 +234,8 @@ local CompactVendorFilterFrameTemplate do
                 local name = sorted[i]
                 local filter = self.Filters[name]
                 if filter:IsRelevant() then
-                    info.text = format("%s%s%s", NORMAL_FONT_COLOR_CODE, filter.name, FONT_COLOR_CODE_CLOSE)
-                    UIDropDownMenu_AddButton(info, level)
+                    -- info.text = format("%s%s%s", NORMAL_FONT_COLOR_CODE, filter.name, FONT_COLOR_CODE_CLOSE)
+                    -- UIDropDownMenu_AddButton(info, level)
                     filter:GetDropdown(level)
                 end
             end
@@ -740,6 +740,97 @@ local CompactVendorFilterDropDownWrapperTemplate do
         local filter = CompactVendorFilterDropDownTemplate:New(name, {}, itemDataKey, {}, self.OnRefreshWrapper) ---@diagnostic disable-line: assign-type-mismatch
         Mixin(filter, self)
         filter.valueIsLocaleKey = valueIsLocaleKey
+        return filter
+    end
+
+end
+
+---@class CompactVendorFilterDropDownToggleWrapperTemplate
+local CompactVendorFilterDropDownToggleWrapperTemplate do
+
+    ---@alias CompactVendorFilterDropDownToggleWrapperTemplateGetValueKey fun(self: CompactVendorFilterDropDownToggleWrapperTemplate, value: any, itemData: MerchantItem): any?
+    ---@alias CompactVendorFilterDropDownToggleWrapperTemplateGetValueText fun(self: CompactVendorFilterDropDownToggleWrapperTemplate, value: any): string
+
+    ---@class CompactVendorFilterDropDownToggleWrapperTemplate : CompactVendorFilterDropDownTemplate
+    ---@field public getValueKey? CompactVendorFilterDropDownToggleWrapperTemplateGetValueKey
+    ---@field public getValueText? CompactVendorFilterDropDownToggleWrapperTemplateGetValueText
+    ---@field public isYesNo? boolean
+
+    CompactVendorFilterDropDownToggleWrapperTemplate = {}
+    _G.CompactVendorFilterDropDownToggleWrapperTemplate = CompactVendorFilterDropDownToggleWrapperTemplate
+
+    function CompactVendorFilterDropDownToggleWrapperTemplate:OnRefreshWrapper()
+        local items = self.parent:GetMerchantItems()
+        local itemDataKey = self.itemDataKey
+        local values = self.values
+        local options = self.options
+        table.wipe(values)
+        for _, itemData in ipairs(items) do
+            local itemLink = itemData[itemDataKey]
+            local value
+            if self.getValueKey then
+                value = self:getValueKey(itemLink, itemData)
+            else
+                value = itemLink
+            end
+            if value ~= nil then
+                values[value] = true
+            end
+        end
+        for _, option in ipairs(options) do
+            option.show = false
+        end
+        for value, _ in pairs(values) do
+            local option = self:GetOption(value)
+            if not option then
+                option = {}
+                options[#options + 1] = option
+            end
+            option.value = value
+            if self.getValueText then
+                option.text = self:getValueText(value)
+            else
+                option.text = tostring(value)
+            end
+            if self.isYesNo then
+                option.index = option.text == YES and 1 or 2
+            end
+            option.show = true
+            if option.checked == nil then
+                option.checked = true
+            end
+        end
+    end
+
+    ---@param itemLink string
+    ---@param itemData MerchantItem
+    function CompactVendorFilterDropDownToggleWrapperTemplate:GetValueWrapper(itemLink, itemData, ...)
+        if self.getValueKey then
+            return self:getValueKey(itemLink, itemData)
+        end
+        return itemLink
+    end
+
+    ---@param value any
+    ---@param itemValue any
+    ---@param itemData MerchantItem
+    function CompactVendorFilterDropDownToggleWrapperTemplate:HasValueWrapper(value, itemValue, itemData)
+        if itemValue == nil then
+            return
+        end
+        return value == itemValue
+    end
+
+    ---@param name string?
+    ---@param getValueKey CompactVendorFilterDropDownToggleWrapperTemplateGetValueKey?
+    ---@param getValueText CompactVendorFilterDropDownToggleWrapperTemplateGetValueText?
+    ---@param isYesNo boolean?
+    function CompactVendorFilterDropDownToggleWrapperTemplate:New(name, getValueKey, getValueText, isYesNo)
+        local filter = CompactVendorFilterDropDownTemplate:New(name, {}, "itemLink", {}, self.OnRefreshWrapper, self.GetValueWrapper, self.HasValueWrapper)
+        Mixin(filter, self)
+        filter.getValueKey = getValueKey
+        filter.getValueText = getValueText
+        filter.isYesNo = isYesNo
         return filter
     end
 

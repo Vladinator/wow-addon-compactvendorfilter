@@ -1,8 +1,14 @@
-local CompactVendorFilterToggleTemplate = CompactVendorFilterToggleTemplate ---@type CompactVendorFilterToggleTemplate
+local CompactVendorFilterDropDownToggleWrapperTemplate = CompactVendorFilterDropDownToggleWrapperTemplate ---@type CompactVendorFilterDropDownToggleWrapperTemplate
 
-local filter = CompactVendorFilterToggleTemplate:New(
-    "Known", { showKnown = false },
-    "showKnown", "isLearned"
+local filter = CompactVendorFilterDropDownToggleWrapperTemplate:New(
+    "Known",
+    function(self, itemLink, itemData)
+        return itemData.isLearned
+    end,
+    function(self, value)
+        return value and YES or NO
+    end,
+    true
 )
 
 filter:Publish()
