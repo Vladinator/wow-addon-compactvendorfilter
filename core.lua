@@ -708,7 +708,9 @@ local CompactVendorFilterDropDownWrapperTemplate do
         table.wipe(values)
         for _, itemData in ipairs(items) do
             local value = itemData[itemDataKey] ---@type string
-            values[value] = true
+            if value ~= nil and (not self.valueIsLocaleKey or _G[value] ~= nil) then
+                values[value] = true
+            end
         end
         for _, option in ipairs(options) do
             option.show = false
