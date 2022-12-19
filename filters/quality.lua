@@ -20,7 +20,8 @@ local filter = CompactVendorFilterDropDownTemplate:New(
         local values = self.values
         table.wipe(values)
         for _, itemData in ipairs(items) do
-            values[itemData[itemDataKey]] = true
+            local value = itemData[itemDataKey] ---@type number
+            values[value] = true
         end
     end
 )

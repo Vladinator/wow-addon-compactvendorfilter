@@ -1,6 +1,9 @@
 local CompactVendorFilterDropDownTemplate = CompactVendorFilterDropDownTemplate ---@type CompactVendorFilterDropDownTemplate
 
-local statTable = {}
+---@alias StatTablePolyfill table<string, number>
+
+---@type StatTablePolyfill
+local statTable = setmetatable({}, { __index = { temp = { link = "", show = 0, hide = 0 } } })
 
 local filter = CompactVendorFilterDropDownTemplate:New(
     "Stats", {},
@@ -12,11 +15,10 @@ local filter = CompactVendorFilterDropDownTemplate:New(
         local options = self.options
         table.wipe(values)
         for _, itemData in ipairs(items) do
-            local itemLink = itemData[itemDataKey]
+            local itemLink = itemData[itemDataKey] ---@type string
             GetItemStats(itemLink, statTable)
             for statKey, _ in pairs(statTable) do
-                local statText = _G[statKey]
-                values[statText] = true
+                values[statKey] = true
             end
             table.wipe(statTable)
         end
@@ -30,7 +32,7 @@ local filter = CompactVendorFilterDropDownTemplate:New(
                 options[#options + 1] = option
             end
             option.value = value
-            option.text = tostring(value)
+            option.text = tostring(_G[value])
             option.show = true
             if option.checked == nil then
                 option.checked = true
@@ -41,17 +43,36 @@ local filter = CompactVendorFilterDropDownTemplate:New(
         GetItemStats(itemLink, statTable)
         return statTable
     end,
-    function(_, value, itemValue)
-        local count = 0
-        for statKey, _ in pairs(itemValue) do
-            local statText = _G[statKey]
-            if statText == value then
-                return false
-            end
-            count = count + 1
+    ---@param value string?
+    ---@param itemValue StatTablePolyfill
+    function(_, value, itemValue, itemData)
+        local temp = itemValue.temp ---@type any
+        if temp.link ~= itemData.itemLink then
+            temp.link = itemData.itemLink
+            temp.show = 0
+            temp.hide = 0
         end
-        return count ~= 0
+        local total = 0
+        local found = 0
+        for statKey, _ in pairs(itemValue) do
+            total = total + 1
+            if statKey == value then
+                found = found + 1
+            end
+        end
+        if total == 0 then
+            return true
+        elseif found == 0 then
+            temp.hide = temp.hide + 1
+        else
+            temp.show = temp.show + 1
+        end
+        found = temp.show + temp.hide
+        if found ~= total then
+            return
+        end
+        return temp.show ~= 0 -- TODO
     end
 )
 
--- filter:Publish()
+filter:Publish()

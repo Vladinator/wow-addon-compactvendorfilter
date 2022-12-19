@@ -1,13 +1,9 @@
 local CompactVendorFilterDropDownToggleWrapperTemplate = CompactVendorFilterDropDownToggleWrapperTemplate ---@type CompactVendorFilterDropDownToggleWrapperTemplate
 
 local filter = CompactVendorFilterDropDownToggleWrapperTemplate:New(
-    "Affordable",
+    "Purchasable",
     function(self, itemLink, itemData)
-        if not itemData.price or itemData.price <= 0 then
-            return
-        end
-        local money = GetMoney() - itemData.price
-        return money >= 0
+        return itemData.canAfford
     end,
     function(self, value)
         return value and YES or NO

@@ -29,20 +29,21 @@ local IsCollected do
     }
 
     ---@param itemLinkOrID any
+    ---@return boolean canCollect, boolean? isCollected
     function IsCollected(itemLinkOrID)
         local itemID, _, _, slotName = GetItemInfoInstant(itemLinkOrID)
         if not slotName then
-            return
+            return false
         end
         local slot = InventorySlots[slotName]
         if not slot then
-            return
+            return false
         end
         if itemLinkOrID == itemID then
             itemLinkOrID = format("item:%d", itemID)
         end
         if not C_Item.IsDressableItemByID(itemLinkOrID) then
-            return
+            return false
         end
         Model:SetUnit("player")
         Model:Undress()
@@ -56,10 +57,10 @@ local IsCollected do
             sourceID = Model:GetSlotTransmogSources(slot)
         end
         if not sourceID then
-            return
+            return false
         end
         local categoryID, appearanceID, canEnchant, texture, isCollected, itemLink = C_TransmogCollection.GetAppearanceSourceInfo(sourceID)
-        return isCollected
+        return true, isCollected
     end
 
 end
@@ -67,7 +68,11 @@ end
 local filter = CompactVendorFilterDropDownToggleWrapperTemplate:New(
     "Appearance",
     function(self, itemLink)
-        return IsCollected(itemLink)
+        local canCollect, isCollected = IsCollected(itemLink)
+        if not canCollect then
+            return true
+        end
+        return isCollected
     end,
     function(self, value)
         return value and TRANSMOG_COLLECTED or NOT_COLLECTED
