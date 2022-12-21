@@ -3,7 +3,14 @@ local CompactVendorFilterDropDownTemplate = CompactVendorFilterDropDownTemplate 
 ---@alias StatTablePolyfill table<string, number>
 
 ---@type StatTablePolyfill
-local statTable = setmetatable({}, { __index = { temp = { link = "", show = 0, hide = 0 } } })
+local statTable = {}
+
+---@param itemLink string
+local function UpdateItemStatTable(itemLink)
+    table.wipe(statTable)
+    GetItemStats(itemLink, statTable)
+    return statTable
+end
 
 local filter = CompactVendorFilterDropDownTemplate:New(
     "Stats", {},
@@ -16,11 +23,10 @@ local filter = CompactVendorFilterDropDownTemplate:New(
         table.wipe(values)
         for _, itemData in ipairs(items) do
             local itemLink = itemData[itemDataKey] ---@type string
-            GetItemStats(itemLink, statTable)
+            UpdateItemStatTable(itemLink)
             for statKey, _ in pairs(statTable) do
                 values[statKey] = true
             end
-            table.wipe(statTable)
         end
         for _, option in ipairs(options) do
             option.show = false
@@ -40,39 +46,19 @@ local filter = CompactVendorFilterDropDownTemplate:New(
         end
     end,
     function(_, itemLink)
-        GetItemStats(itemLink, statTable)
-        return statTable
+        return UpdateItemStatTable(itemLink)
     end,
     ---@param value string?
     ---@param itemValue StatTablePolyfill
-    function(_, value, itemValue, itemData)
-        local temp = itemValue.temp ---@type any
-        if temp.link ~= itemData.itemLink then
-            temp.link = itemData.itemLink
-            temp.show = 0
-            temp.hide = 0
-        end
-        local total = 0
-        local found = 0
+    function(_, value, itemValue)
         for statKey, _ in pairs(itemValue) do
-            total = total + 1
             if statKey == value then
-                found = found + 1
+                return false
             end
         end
-        if total == 0 then
-            return true
-        elseif found == 0 then
-            temp.hide = temp.hide + 1
-        else
-            temp.show = temp.show + 1
-        end
-        found = temp.show + temp.hide
-        if found ~= total then
-            return
-        end
-        return temp.show ~= 0 -- TODO
-    end
+        return true
+    end,
+    true
 )
 
 filter:Publish()

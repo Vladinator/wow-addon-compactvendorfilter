@@ -533,6 +533,7 @@ local CompactVendorFilterDropDownTemplate do
     ---@field public onRefresh CompactVendorFilterDropDownTemplateOnRefresh?
     ---@field public getValue CompactVendorFilterDropDownTemplateGetValue?
     ---@field public hasValue CompactVendorFilterDropDownTemplateHasValue?
+    ---@field public isAccumulative boolean?
 
     CompactVendorFilterDropDownTemplate = {}
     _G.CompactVendorFilterDropDownTemplate = CompactVendorFilterDropDownTemplate
@@ -577,14 +578,36 @@ local CompactVendorFilterDropDownTemplate do
             value = self:getValue(value, itemData)
         end
         local hasValue = self.hasValue
+        local numFiltered = 0
+        local numUnfiltered = 0
         for _, option in ipairs(self.options) do
+            local isUnchecked = not option.checked
             if hasValue then
                 if hasValue(self, option.value, value, itemData) == true then
-                    return not option.checked
+                    if self.isAccumulative then
+                        if isUnchecked then
+                            numFiltered = numFiltered + 1
+                        else
+                            numUnfiltered = numUnfiltered + 1
+                        end
+                    else
+                        return isUnchecked
+                    end
                 end
             elseif option.value == value then
-                return not option.checked
+                if self.isAccumulative then
+                    if isUnchecked then
+                        numFiltered = numFiltered + 1
+                    else
+                        numUnfiltered = numUnfiltered + 1
+                    end
+                else
+                    return isUnchecked
+                end
             end
+        end
+        if self.isAccumulative then
+            return numFiltered ~= 0 and numUnfiltered ~= 0
         end
         return false
     end
@@ -668,13 +691,15 @@ local CompactVendorFilterDropDownTemplate do
     ---@param onRefresh CompactVendorFilterDropDownTemplateOnRefresh?
     ---@param getValue CompactVendorFilterDropDownTemplateGetValue?
     ---@param hasValue CompactVendorFilterDropDownTemplateHasValue?
-    function CompactVendorFilterDropDownTemplate:New(name, defaults, itemDataKey, options, onRefresh, getValue, hasValue)
+    ---@param isAccumulative boolean?
+    function CompactVendorFilterDropDownTemplate:New(name, defaults, itemDataKey, options, onRefresh, getValue, hasValue, isAccumulative)
         ---@type CompactVendorFilterDropDownTemplate
         local filter = CompactVendorFilterTemplate:New(name, defaults) ---@diagnostic disable-line: assign-type-mismatch
         Mixin(filter, self)
         filter.values = Mixin({}, defaults and defaults.values or {})
         filter.itemDataKey = itemDataKey
         filter.options = options
+        filter.isAccumulative = isAccumulative
         filter.onRefresh = onRefresh
         filter.getValue = getValue
         filter.hasValue = hasValue
