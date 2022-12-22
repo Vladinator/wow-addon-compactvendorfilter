@@ -142,7 +142,9 @@ local CompactVendorFilterFrameTemplate do
         self.DropdownInfo = {} ---@type DropdownInfoPolyfill
         self.DropdownSortedFilters = {} ---@type string[]
         self.VendorOpen = false
+        self.VendorUpdating = false
         UIDropDownMenu_SetInitializeFunction(self, self.DropdownInitialize)
+        self.MerchantDataProvider:RegisterCallback(self.MerchantDataProvider.Event.OnReady, function() self:Refresh() end)
     end
 
     ---@param event WowEvent
@@ -160,7 +162,7 @@ local CompactVendorFilterFrameTemplate do
     function CompactVendorFilterFrameTemplate:MerchantOpen()
         self.VendorOpen = true
         self:Refresh()
-        C_Timer.After(0.25, function() self:Refresh() end) -- HOTFIX
+        C_Timer.After(1, function() self:Refresh() end) -- HOTFIX: force update the dropdown choices once data is fully loaded
     end
 
     function CompactVendorFilterFrameTemplate:MerchantClose()
@@ -198,6 +200,10 @@ local CompactVendorFilterFrameTemplate do
     end
 
     function CompactVendorFilterFrameTemplate:Refresh()
+        if self.VendorUpdating then
+            return
+        end
+        self.VendorUpdating = true
         for _, filter in pairs(self.Filters) do
             filter:OnRefresh()
             if not filter:IsRelevant() then
@@ -205,6 +211,7 @@ local CompactVendorFilterFrameTemplate do
             end
         end
         self.MerchantDataProvider:Refresh()
+        self.VendorUpdating = false
     end
 
     ---@return MerchantItem[] items
