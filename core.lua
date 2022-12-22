@@ -162,7 +162,7 @@ local CompactVendorFilterFrameTemplate do
     function CompactVendorFilterFrameTemplate:MerchantOpen()
         self.VendorOpen = true
         self:Refresh()
-        C_Timer.After(1, function() self:Refresh() end) -- HOTFIX: force update the dropdown choices once data is fully loaded
+        C_Timer.After(0.5, function() self:Refresh() end) -- HOTFIX: force update the dropdown choices once data is fully loaded
     end
 
     function CompactVendorFilterFrameTemplate:MerchantClose()
